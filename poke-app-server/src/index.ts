@@ -1,26 +1,56 @@
 import * as admin from 'firebase-admin';
 
 admin.initializeApp({
-  credential: admin.credential.cert('../secrets/poke-87981-firebase-adminsdk-evup9-9a8a45c644.json'),
+  credential: admin.credential.cert('secrets/poke-87981-firebase-adminsdk-evup9-9a8a45c644.json'),
   databaseURL: 'https://poke-87981.firebaseio.com', // Ensure the URL is correct
 });
 
 const db = admin.firestore();
-const collectionName = 'users';
+const collectionName = 'contacts';
 
-// Seed users into Firestore
-async function seedUsers() {
-  const users: Array<{ name: string; age: number }> = [
-    { name: 'Alice', age: 30 },
-    { name: 'Bob', age: 25 },
-    { name: 'Charlie', age: 40 },
+async function seedContacts() {
+  const contacts: Array<{
+    name: string;
+    location: string;
+    lastContacted: string;
+    photo: string | null;
+    phone: string;
+    email: string;
+    linkedin: string;
+  }> = [
+    {
+      name: 'Aminah Aliu',
+      location: 'Princeton, NJ',
+      lastContacted: '2024-07-01',
+      photo: "aminah_profile.png",
+      phone: '+1 234 567 8901',
+      email: 'aminah0aliu@gmail.com',
+      linkedin: 'https://www.linkedin.com/in/aminah-aliu/',
+    },
+    {
+      name: 'Alexander Cholmsky',
+      location: 'Waterloo, ON',
+      lastContacted: '2024-06-15',
+      photo: "Alex_Headshot_2024.png",
+      phone: '+1 987 654 3210',
+      email: 'bob.brown@example.com',
+      linkedin: 'https://linkedin.com/in/bobbrown',
+    },
+    {
+      name: 'Jane Smith',
+      location: 'Chicago, IL',
+      lastContacted: '2024-08-10',
+      photo: "default_headshot.jpeg",
+      phone: '+1 555 123 4567',
+      email: 'jane_smith@example.com',
+      linkedin: 'https://linkedin.com/in/janesmith',
+    },
   ];
-  
 
-  for (const user of users) {
-    await db.collection('users').add(user);
+  for (const contact of contacts) {
+    await db.collection(collectionName).add(contact);
   }
-  console.log('Sample data seeded successfully!');
+  console.log('Sample contacts seeded successfully!');
 }
 
 async function getDocument(documentId: string): Promise<void> {
@@ -40,7 +70,7 @@ async function getDocument(documentId: string): Promise<void> {
 // Get all documents
 async function getAllDocuments() {
   try {
-    const snapshot = await db.collection('users').get();
+    const snapshot = await db.collection(collectionName).get();
     if (snapshot.empty) {
       console.log('No documents found!');
       return;
@@ -54,10 +84,10 @@ async function getAllDocuments() {
   }
 }
 
-// Query by field
+// Query by field (e.g., by location)
 async function queryByField() {
   try {
-    const snapshot = await db.collection('users').where('age', '>=', 18).get();
+    const snapshot = await db.collection(collectionName).where('location', '==', 'New York, NY').get();
     if (snapshot.empty) {
       console.log('No matching documents!');
       return;
@@ -73,7 +103,7 @@ async function queryByField() {
 
 // Run the functions
 (async () => {
-  await seedUsers();
+  await seedContacts();
   await getAllDocuments();
   await queryByField();
 })();
