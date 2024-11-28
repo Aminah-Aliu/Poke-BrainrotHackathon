@@ -1,23 +1,24 @@
+import express from 'express';
 import * as admin from 'firebase-admin';
+import cors from 'cors';
 
 admin.initializeApp({
   credential: admin.credential.cert('secrets/poke-87981-firebase-adminsdk-evup9-9a8a45c644.json'),
   databaseURL: 'https://poke-87981.firebaseio.com', // Ensure the URL is correct
 });
 
+const app = express();
+const port = 3000;
+
+app.use(cors());
+app.use(express.json());
+
 const db = admin.firestore();
 const collectionName = 'contacts';
 
-async function seedContacts() {
-  const contacts: Array<{
-    name: string;
-    location: string;
-    lastContacted: string;
-    photo: string | null;
-    phone: string;
-    email: string;
-    linkedin: string;
-  }> = [
+// Seed contacts into Firestore
+app.post('/seed-contacts', async (req, res) => {
+  const contacts = [
     {
       name: 'Aminah Aliu',
       location: 'Princeton, NJ',
@@ -47,63 +48,35 @@ async function seedContacts() {
     },
   ];
 
-  for (const contact of contacts) {
-    await db.collection(collectionName).add(contact);
-  }
-  console.log('Sample contacts seeded successfully!');
-}
-
-async function getDocument(documentId: string): Promise<void> {
   try {
-    const docRef = db.collection(collectionName).doc(documentId);
-    const doc = await docRef.get();
-    if (doc.exists) {
-      console.log('Document data:', doc.data());
-    } else {
-      console.log('No document found for ID:', documentId);
+    for (const contact of contacts) {
+      await db.collection(collectionName).add(contact);
     }
+    res.status(200).send('Sample contacts seeded successfully!');
   } catch (error) {
-    console.error('Error getting document:', error);
+    res.status(500).send('Error seeding contacts: ' + error.message);
   }
-}
+});
 
-// Get all documents
-async function getAllDocuments() {
+// Get all contacts
+app.get('/contacts', async (req, res) => {
   try {
     const snapshot = await db.collection(collectionName).get();
     if (snapshot.empty) {
-      console.log('No documents found!');
+      res.status(404).send('No contacts found');
       return;
     }
-    snapshot.forEach((doc) => {
-      console.log('Document ID:', doc.id);
-      console.log('Document data:', doc.data());
+    const contacts = [];
+    snapshot.forEach(doc => {
+      contacts.push({ id: doc.id, ...doc.data() });
     });
+    res.status(200).json(contacts);
   } catch (error) {
-    console.error('Error getting documents:', error);
+    res.status(500).send('Error getting contacts: ' + error.message);
   }
-}
+});
 
-// Query by field (e.g., by location)
-async function queryByField() {
-  try {
-    const snapshot = await db.collection(collectionName).where('location', '==', 'New York, NY').get();
-    if (snapshot.empty) {
-      console.log('No matching documents!');
-      return;
-    }
-    snapshot.forEach((doc) => {
-      console.log('Document ID:', doc.id);
-      console.log('Document data:', doc.data());
-    });
-  } catch (error) {
-    console.error('Error querying documents:', error);
-  }
-}
-
-// Run the functions
-(async () => {
-  await seedContacts();
-  await getAllDocuments();
-  await queryByField();
-})();
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
