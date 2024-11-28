@@ -67,6 +67,29 @@ app.post('/seed-contacts', async (req: Request, res: Response) => {
   }
 });
 
+// Add a new contact
+app.post('/contacts', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const newContact = req.body;
+
+    if (!newContact.name || !newContact.company || !newContact.lastContacted) {
+      res.status(400).send('Missing required fields: name, company, or lastContacted');
+      return;
+    }
+
+    const addedContact = await db.collection(collectionName).add(newContact);
+    const addedContactData = await addedContact.get();
+
+    res.status(201).json({ id: addedContact.id, ...addedContactData.data() });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).send('Error adding contact: ' + error.message);
+    } else {
+      res.status(500).send('Error adding contact');
+    }
+  }
+});
+
 // Get all contacts
 app.get('/contacts', async (req: Request, res: Response) => {
   try {

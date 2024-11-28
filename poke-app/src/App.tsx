@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
+import Papa from "papaparse";
 
-type Contact = {
-  id: string;
+interface Contact {
+  id?: string;
   name: string;
-  location: string;
+  company: string;
   lastContacted: string;
-  photo: string | null;
-  phone: string;
-  email: string;
-  linkedin: string;
-};
+  photo?: string | null;
+  phone?: string;
+  email?: string;
+  linkedin?: string;
+}
 
 const serverPort = "5001";
 
@@ -19,24 +20,21 @@ const App = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactIndex, setSelectedContactIndex] = useState(0);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
 
   const currentContact = contacts[selectedContactIndex];
 
-  // States for form input fields
   const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [lastContacted, setLastContacted] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [company, setCompany] = useState("");
+  const [lastContacted, setLastContacted] = useState(new Date().toISOString().split("T")[0]);
   const [photo, setPhoto] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [linkedin, setLinkedin] = useState("");
 
   useEffect(() => {
-    // Fetch contacts from backend
     axios
-      .get("http://localhost:" + serverPort+ "/contacts")
+      .get("http://localhost:" + serverPort + "/contacts")
       .then((response) => {
         setContacts(response.data);
       })
@@ -50,13 +48,11 @@ const App = () => {
       return;
     }
 
-    // Show the contact modal
     setShowContactModal(true);
 
-    // Update last contacted date
     const updatedContact: Contact = {
       ...currentContact,
-      lastContacted: new Date().toISOString().split("T")[0], // Update to today's date
+      lastContacted: new Date().toISOString().split("T")[0],
     };
 
     const updatedContacts = [...contacts];
@@ -64,54 +60,44 @@ const App = () => {
 
     setContacts(updatedContacts);
 
-    const contactToSend = updatedContact;
-    contactToSend.photo = null;
-    // Optionally send an update request to the backend to save the changes
     axios
-      .put(`http://localhost:" + serverPort +"/contacts/${currentContact.id}`, updatedContact)
+      .put(`http://localhost:${serverPort}/contacts/${currentContact.id}`, updatedContact)
       .catch((error) => {
         console.error("Error updating contact:", error);
       });
   };
 
   const handlePass = () => {
-    // Move to the next contact
-    setSelectedContactIndex((prevIndex) =>
-      prevIndex + 1 < contacts.length ? prevIndex + 1 : 0
-    );
-    setShowContactModal(false); // Hide modal for the new contact
+    setSelectedContactIndex((prevIndex) => (prevIndex + 1 < contacts.length ? prevIndex + 1 : 0));
+    setShowContactModal(false);
   };
 
   const handleAddContact = (event: React.FormEvent) => {
     event.preventDefault();
 
-    // Create a new contact object
     const newContact: Omit<Contact, 'id'> = {
       name: name,
-      location: location,
+      company: company,
       lastContacted: lastContacted,
       photo: photo,
       phone: phone,
       email: email,
       linkedin: linkedin,
     };
-    const contactToSend = newContact;
-    contactToSend.photo = null;
-    // Add the new contact to the backend
+
     axios
-      .post("http://localhost:" + serverPort + "/contacts", contactToSend)
+      .post("http://localhost:" + serverPort + "/contacts", newContact)
       .then((response) => {
-        // Add the new contact to the contacts array
         setContacts([response.data, ...contacts]);
 
-        // Clear the input fields
         setName("");
-        setLocation("");
+        setCompany("");
         setLastContacted(new Date().toISOString().split("T")[0]);
         setPhoto(null);
         setPhone("");
         setEmail("");
         setLinkedin("");
+        setShowAddContactModal(false);
       })
       .catch((error) => {
         console.error("Error adding contact:", error);
@@ -134,63 +120,66 @@ const App = () => {
     setShowContactModal(false);
   };
 
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+  
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (result: { data: any[] }) => {
+          const importedContacts = result.data.map((row: any) => ({
+            name: `${row["First Name"]} ${row["Last Name"]}`,
+            company: row["Company"] || "",
+            lastContacted: row["Connected On"],
+            photo: null,
+            phone: "",
+            email: row["Email Address"] || "",
+            linkedin: row["URL"] || "",
+          }));
+  
+          // Iterate over each imported contact and post it to the server
+          importedContacts.forEach((contact) => {
+            axios
+              .post(`http://localhost:${serverPort}/contacts`, contact)
+              .then((response) => {
+                // Add the response data to the state, so the new contact is visible
+                setContacts((prevContacts) => [response.data, ...prevContacts]);
+              })
+              .catch((error) => {
+                console.error("Error adding contact from CSV:", error);
+              });
+          });
+        },
+      });
+    }
+  };  
+
   return (
     <div className="page-container">
       <header className="app-header">
         <h1 className="app-title">Poke</h1>
       </header>
       <div className="app-container">
-        <div className="form-container">
-          <form className="contact-form" onSubmit={handleAddContact}>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Name"
-              required
-            />
-            <input
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder="Location"
-              required
-            />
-            <input
-              value={lastContacted}
-              onChange={(event) => setLastContacted(event.target.value)}
-              placeholder="Last Contacted (YYYY-MM-DD)"
-              required
-            />
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} />
-            <input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="Phone"
-            />
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Email"
-            />
-            <input
-              value={linkedin}
-              onChange={(event) => setLinkedin(event.target.value)}
-              placeholder="LinkedIn URL"
-            />
-            <button type="submit">Add Contact</button>
-          </form>
+        <div className="button-group">
+          <button className="add-contact-button" onClick={() => setShowAddContactModal(true)}>
+            Add Contact
+          </button>
+          <label className="import-label">
+            Import Connections from CSV
+            <input type="file" accept=".csv" onChange={handleImportCSV} className="form-input csv-input" />
+          </label>
         </div>
-        <div className="contact-display">
-          {currentContact && (
-            <div key={currentContact.id} className="contact-item">
-              {currentContact.photo && (
-                <img
-                  src={currentContact.photo}
-                  alt={`${currentContact.name}'s photo`}
-                  className="contact-photo"
-                />
-              )}
+        {currentContact && (
+          <div className="contact-item">
+              <img
+              src={'/chill_guy.jpeg'}
+              alt={`${currentContact.name}'s photo`}
+                className="contact-photo"
+              />
+            <div className="contact-details">
               <h2>{currentContact.name}</h2>
-              <p>Location: {currentContact.location}</p>
+              <p>{currentContact.company}</p>
               <p>Last Contacted: {currentContact.lastContacted}</p>
               <div className="action-buttons">
                 <button className="poke-button" onClick={handlePoke}>
@@ -201,8 +190,8 @@ const App = () => {
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {showContactModal && (
@@ -236,6 +225,80 @@ const App = () => {
             <button className="close-modal-button" onClick={handleCloseModal}>
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {showAddContactModal && (
+        <div className="modal-overlay" onClick={() => setShowAddContactModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Add Contact</h3>
+            <form onSubmit={handleAddContact}>
+              <div className="form-fields">
+                <div className="form-field">
+                  <label className="form-label">Name</label>
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Company</label>
+                  <input
+                    value={company}
+                    onChange={(event) => setCompany(event.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Last Contacted</label>
+                  <input
+                    type="date"
+                    value={lastContacted}
+                    onChange={(event) => setLastContacted(event.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Photo</label>
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="form-input" />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Phone</label>
+                  <input
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Email</label>
+                  <input
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">LinkedIn URL</label>
+                  <input
+                    value={linkedin}
+                    onChange={(event) => setLinkedin(event.target.value)}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+              <div className="button-group">
+                <button type="submit" className="submit-button">Add Contact</button>
+                <button type="button" className="close-modal-button" onClick={() => setShowAddContactModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
