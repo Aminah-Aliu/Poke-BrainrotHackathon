@@ -1,151 +1,244 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./App.css";
 
-type Note = {
-  id: number;
-  title: string;
-  content: string;
+type Contact = {
+  id: string;
+  name: string;
+  location: string;
+  lastContacted: string;
+  photo: string | null;
+  phone: string;
+  email: string;
+  linkedin: string;
 };
 
+const serverPort = "5001";
+
 const App = () => {
-  // State definitions
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContactIndex, setSelectedContactIndex] = useState(0);
+  const [showContactModal, setShowContactModal] = useState(false);
 
-    // Dummy data
-  const [notes, setNotes] = useState([
-    {
-      id: 1,
-      title: "test note 1",
-      content: "bla bla note1",
-    },
-    {
-      id: 2,
-      title: "test note 2 ",
-      content: "bla bla note2",
-    },
-    {
-      id: 3,
-      title: "test note 3",
-      content: "bla bla note3",
-    },
-    {
-      id: 4,
-      title: "test note 4 ",
-      content: "bla bla note4",
-    },
-    {
-      id: 5,
-      title: "test note 5",
-      content: "bla bla note5",
-    },
-    {
-      id: 6,
-      title: "test note 6",
-      content: "bla bla note6",
-    },
-  ]);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const currentContact = contacts[selectedContactIndex];
 
+  // States for form input fields
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [lastContacted, setLastContacted] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [linkedin, setLinkedin] = useState("");
 
-  const handleAddNote = (event: React.FormEvent) => {
-    event.preventDefault();
+  useEffect(() => {
+    // Fetch contacts from backend
+    axios
+      .get("http://localhost:" + serverPort+ "/contacts")
+      .then((response) => {
+        setContacts(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching contacts:", error);
+      });
+  }, []);
 
-    // Create a new note object
-    const newNote: Note = {
-      id: notes.length + 1,
-      title: title,
-      content: content,
-    };
-
-    // Add the new note to the notes array
-    setNotes([newNote, ...notes]);
-
-    // Clear the input fields
-    setTitle("");
-    setContent("");
-  };
-
-  const handleNoteClick = (note: Note) => {
-    setSelectedNote(note);
-    setTitle(note.title);
-    setContent(note.content);
-  };
-
-  const handleUpdateNote = (event: React.FormEvent) => {
-    event.preventDefault();
-  
-    if (!selectedNote) {
+  const handlePoke = () => {
+    if (!currentContact) {
       return;
     }
-  
-    const updatedNote: Note = {
-      id: selectedNote.id,
-      title: title,
-      content: content,
+
+    // Show the contact modal
+    setShowContactModal(true);
+
+    // Update last contacted date
+    const updatedContact: Contact = {
+      ...currentContact,
+      lastContacted: new Date().toISOString().split("T")[0], // Update to today's date
     };
-  
-    const updatedNotesList = notes.map((note) => (note.id === selectedNote.id ? updatedNote : note));
-  
-    setNotes(updatedNotesList);
-    setTitle("");
-    setContent("");
-    setSelectedNote(null);
+
+    const updatedContacts = [...contacts];
+    updatedContacts[selectedContactIndex] = updatedContact;
+
+    setContacts(updatedContacts);
+
+    const contactToSend = updatedContact;
+    contactToSend.photo = null;
+    // Optionally send an update request to the backend to save the changes
+    axios
+      .put(`http://localhost:" + serverPort +"/contacts/${currentContact.id}`, updatedContact)
+      .catch((error) => {
+        console.error("Error updating contact:", error);
+      });
   };
 
-  const handleCancel = () => {
-    setTitle("");
-    setContent("");
-    setSelectedNote(null);
+  const handlePass = () => {
+    // Move to the next contact
+    setSelectedContactIndex((prevIndex) =>
+      prevIndex + 1 < contacts.length ? prevIndex + 1 : 0
+    );
+    setShowContactModal(false); // Hide modal for the new contact
   };
 
-  const deleteNote = (event: React.MouseEvent, noteId: number) => {
-    event.stopPropagation();
-  
-    const updatedNotes = notes.filter((note) => note.id !== noteId);
-  
-    setNotes(updatedNotes);
+  const handleAddContact = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    // Create a new contact object
+    const newContact: Omit<Contact, 'id'> = {
+      name: name,
+      location: location,
+      lastContacted: lastContacted,
+      photo: photo,
+      phone: phone,
+      email: email,
+      linkedin: linkedin,
+    };
+    const contactToSend = newContact;
+    contactToSend.photo = null;
+    // Add the new contact to the backend
+    axios
+      .post("http://localhost:" + serverPort + "/contacts", contactToSend)
+      .then((response) => {
+        // Add the new contact to the contacts array
+        setContacts([response.data, ...contacts]);
+
+        // Clear the input fields
+        setName("");
+        setLocation("");
+        setLastContacted(new Date().toISOString().split("T")[0]);
+        setPhoto(null);
+        setPhone("");
+        setEmail("");
+        setLinkedin("");
+      })
+      .catch((error) => {
+        console.error("Error adding contact:", error);
+      });
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target && e.target.result) {
+          setPhoto(e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowContactModal(false);
   };
 
   return (
-    <div className="app-container">
-      <form
-        className="note-form"
-        onSubmit={(event) => (selectedNote ? handleUpdateNote(event) : handleAddNote(event))}
-      >
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="Title"
-          required
-        ></input>
-          <textarea
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
-          placeholder="Content"
-          rows={10}
-          required
-        ></textarea>
-        {selectedNote ? (
-          <div className="edit-buttons">
-            <button type="submit">Save</button>
-            <button onClick={handleCancel}>Cancel</button>
-          </div>
-        ) : (
-          <button type="submit">Add Note</button>
-        )}
-      </form>
-      <div className="notes-grid">
-        {notes.map((note) => (
-          <div key={note.id} className="note-item" onClick={() => handleNoteClick(note)}>
-            <div className="notes-header">
-            <button onClick={(event) => deleteNote(event, note.id)}>x</button>
+    <div className="page-container">
+      <header className="app-header">
+        <h1 className="app-title">Poke</h1>
+      </header>
+      <div className="app-container">
+        <div className="form-container">
+          <form className="contact-form" onSubmit={handleAddContact}>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Name"
+              required
+            />
+            <input
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="Location"
+              required
+            />
+            <input
+              value={lastContacted}
+              onChange={(event) => setLastContacted(event.target.value)}
+              placeholder="Last Contacted (YYYY-MM-DD)"
+              required
+            />
+            <input type="file" accept="image/*" onChange={handlePhotoUpload} />
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="Phone"
+            />
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+            />
+            <input
+              value={linkedin}
+              onChange={(event) => setLinkedin(event.target.value)}
+              placeholder="LinkedIn URL"
+            />
+            <button type="submit">Add Contact</button>
+          </form>
+        </div>
+        <div className="contact-display">
+          {currentContact && (
+            <div key={currentContact.id} className="contact-item">
+              {currentContact.photo && (
+                <img
+                  src={currentContact.photo}
+                  alt={`${currentContact.name}'s photo`}
+                  className="contact-photo"
+                />
+              )}
+              <h2>{currentContact.name}</h2>
+              <p>Location: {currentContact.location}</p>
+              <p>Last Contacted: {currentContact.lastContacted}</p>
+              <div className="action-buttons">
+                <button className="poke-button" onClick={handlePoke}>
+                  Poke
+                </button>
+                <button className="pass-button" onClick={handlePass}>
+                  Pass
+                </button>
+              </div>
             </div>
-            <h2>{note.title}</h2>
-            <p>{note.content}</p>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
+
+      {showContactModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Contact Methods for {currentContact.name}</h3>
+            <ul className="contact-methods">
+              {currentContact.phone && (
+                <li>
+                  <strong>Phone:</strong> {currentContact.phone}
+                </li>
+              )}
+              {currentContact.email && (
+                <li>
+                  <strong>Email:</strong> {currentContact.email}
+                </li>
+              )}
+              {currentContact.linkedin && (
+                <li>
+                  <strong>LinkedIn:</strong>{" "}
+                  <a
+                    href={currentContact.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {currentContact.linkedin}
+                  </a>
+                </li>
+              )}
+            </ul>
+            <button className="close-modal-button" onClick={handleCloseModal}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
