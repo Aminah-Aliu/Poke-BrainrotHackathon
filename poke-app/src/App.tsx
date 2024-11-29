@@ -15,7 +15,9 @@ interface Contact {
   notes?: string;
 }
 
-const serverPort = "5001";
+// switch to localhost and port 5001 for local use
+const host = "https://poke-brainrothackathon-be.onrender.com";
+const serverPort = "10000";
 
 const App = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -36,7 +38,7 @@ const App = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:" + serverPort + "/contacts")
+      .get(host + serverPort + "/contacts")
       .then((response) => {
         setContacts(response.data);
       })
@@ -63,7 +65,7 @@ const App = () => {
     setContacts(updatedContacts);
 
     axios
-      .put(`http://localhost:${serverPort}/contacts/${currentContact.id}`, updatedContact)
+      .put(host+ serverPort + "/contacts/${currentContact.id}", updatedContact)
       .catch((error) => {
         console.error("Error updating contact:", error);
       });
@@ -89,7 +91,7 @@ const App = () => {
     };
 
     axios
-      .post("http://localhost:" + serverPort + "/contacts", newContact)
+      .post(host + serverPort + "/contacts", newContact)
       .then((response) => {
         setContacts([response.data, ...contacts]);
         setName("");
@@ -144,7 +146,7 @@ const App = () => {
           // Iterate over each imported contact and post it to the server
           importedContacts.forEach((contact) => {
             axios
-              .post(`http://localhost:${serverPort}/contacts`, contact)
+              .post(host+serverPort + "/contacts", contact)
               .then((response) => {
                 // Add the response data to the state, so the new contact is visible
                 setContacts((prevContacts) => [response.data, ...prevContacts]);

@@ -6,13 +6,13 @@ import path from 'path';
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(
-    path.resolve(__dirname, '../secrets/poke-87981-firebase-adminsdk-evup9-9a8a45c644.json')
+    path.resolve(__dirname, '/etc/secrets/poke-87981-firebase-adminsdk-evup9-9a8a45c644.json')
   ),
   databaseURL: 'https://poke-87981.firebaseio.com',
 });
 
 const app = express();
-const port = 5001;
+const port = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
