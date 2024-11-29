@@ -4,7 +4,7 @@ import './App.css';
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Login from "./components/auth/login/index.jsx";
 import Register from "./components/auth/register/index.jsx";
-import Home from "./components/home/index.jsx";
+import Home from "./components/home/index";
 import Navbar from './components/nav/index.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -33,6 +33,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 const App: React.FC = () => {
   const isAuthenticated = false; 
+
 
   return (
     <>

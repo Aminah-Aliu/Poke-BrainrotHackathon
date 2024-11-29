@@ -1,28 +1,33 @@
+import express, { Request, Response } from 'express';
 import * as admin from 'firebase-admin';
+import cors from 'cors';
+import path from 'path';
 
+// Initialize Firebase Admin SDK
 admin.initializeApp({
-  credential: admin.credential.cert('secrets/poke-87981-firebase-adminsdk-evup9-9a8a45c644.json'),
-  databaseURL: 'https://poke-87981.firebaseio.com', // Ensure the URL is correct
+  credential: admin.credential.cert(
+    path.resolve(__dirname, '../secrets/poke-87981-firebase-adminsdk-evup9-9a8a45c644.json')
+  ),
+  databaseURL: 'https://poke-87981.firebaseio.com',
 });
+
+const app = express();
+const port = 5001;
+
+app.use(cors());
+app.use(express.json());
 
 const db = admin.firestore();
 const collectionName = 'contacts';
 
-async function seedContacts() {
-  const contacts: Array<{
-    name: string;
-    location: string;
-    lastContacted: string;
-    photo: string | null;
-    phone: string;
-    email: string;
-    linkedin: string;
-  }> = [
+// Seed contacts into Firestore
+app.post('/seed-contacts', async (req: Request, res: Response) => {
+  const contacts = [
     {
       name: 'Aminah Aliu',
       location: 'Princeton, NJ',
       lastContacted: '2024-07-01',
-      photo: "aminah_profile.png",
+      photo: null,
       phone: '+1 234 567 8901',
       email: 'aminah0aliu@gmail.com',
       linkedin: 'https://www.linkedin.com/in/aminah-aliu/',
@@ -31,7 +36,7 @@ async function seedContacts() {
       name: 'Alexander Cholmsky',
       location: 'Waterloo, ON',
       lastContacted: '2024-06-15',
-      photo: "Alex_Headshot_2024.png",
+      photo: null,
       phone: '+1 987 654 3210',
       email: 'bob.brown@example.com',
       linkedin: 'https://linkedin.com/in/bobbrown',
@@ -40,70 +45,74 @@ async function seedContacts() {
       name: 'Jane Smith',
       location: 'Chicago, IL',
       lastContacted: '2024-08-10',
-      photo: "default_headshot.jpeg",
+      photo: null,
       phone: '+1 555 123 4567',
       email: 'jane_smith@example.com',
       linkedin: 'https://linkedin.com/in/janesmith',
     },
   ];
 
-  for (const contact of contacts) {
-    await db.collection(collectionName).add(contact);
-  }
-  console.log('Sample contacts seeded successfully!');
-}
-
-async function getDocument(documentId: string): Promise<void> {
   try {
-    const docRef = db.collection(collectionName).doc(documentId);
-    const doc = await docRef.get();
-    if (doc.exists) {
-      console.log('Document data:', doc.data());
-    } else {
-      console.log('No document found for ID:', documentId);
+    for (const contact of contacts) {
+      await db.collection(collectionName).add(contact);
     }
+    console.log("Seeded successfully")
+    res.status(200).send('Sample contacts seeded successfully!');
   } catch (error) {
-    console.error('Error getting document:', error);
+    if (error instanceof Error) {
+      res.status(500).send('Error seeding contacts: ' + error.message);
+    } else {
+      res.status(500).send('Error seeding contacts');
+    }
   }
-}
+});
 
-// Get all documents
-async function getAllDocuments() {
+// Add a new contact
+app.post('/contacts', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const newContact = req.body;
+
+    if (!newContact.name || !newContact.company || !newContact.lastContacted) {
+      res.status(400).send('Missing required fields: name, company, or lastContacted');
+      return;
+    }
+
+    const addedContact = await db.collection(collectionName).add(newContact);
+    const addedContactData = await addedContact.get();
+
+    res.status(201).json({ id: addedContact.id, ...addedContactData.data() });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).send('Error adding contact: ' + error.message);
+    } else {
+      res.status(500).send('Error adding contact');
+    }
+  }
+});
+
+// Get all contacts
+app.get('/contacts', async (req: Request, res: Response) => {
   try {
     const snapshot = await db.collection(collectionName).get();
     if (snapshot.empty) {
-      console.log('No documents found!');
+      res.status(404).send('No contacts found');
       return;
     }
+    const contacts: any[] = [];
     snapshot.forEach((doc) => {
-      console.log('Document ID:', doc.id);
-      console.log('Document data:', doc.data());
+      contacts.push({ id: doc.id, ...doc.data() });
     });
+    res.status(200).json(contacts);
   } catch (error) {
-    console.error('Error getting documents:', error);
-  }
-}
-
-// Query by field (e.g., by location)
-async function queryByField() {
-  try {
-    const snapshot = await db.collection(collectionName).where('location', '==', 'New York, NY').get();
-    if (snapshot.empty) {
-      console.log('No matching documents!');
-      return;
+    if (error instanceof Error) {
+      res.status(500).send('Error getting contacts: ' + error.message);
+    } else {
+      res.status(500).send('Error getting contacts');
     }
-    snapshot.forEach((doc) => {
-      console.log('Document ID:', doc.id);
-      console.log('Document data:', doc.data());
-    });
-  } catch (error) {
-    console.error('Error querying documents:', error);
   }
-}
+});
 
-// Run the functions
-(async () => {
-  await seedContacts();
-  await getAllDocuments();
-  await queryByField();
-})();
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
