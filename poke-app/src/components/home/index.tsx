@@ -31,7 +31,7 @@ interface Contact {
 }
 
 // switch to localhost and port 5001 for local use
-const host = "https://poke-brainrothackathon-be.onrender.com";
+const host = "https://trypoke.onrender.com";
 const serverPort = "10000";
 // const host = "http://localhost:";
 // const serverPort = "5001";
