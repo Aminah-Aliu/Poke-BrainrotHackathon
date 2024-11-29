@@ -17,7 +17,6 @@ interface Contact {
 
 // switch to development host and server port (see .env) for local use 
 const host = process.env.REACT_APP_PROD_HOST || "error";
-const serverPort = process.env.REACT_APP_PROD_SERVER_PORT || "error";
 
 const Home = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -38,7 +37,7 @@ const Home = () => {
 
   useEffect(() => {
     axios
-      .get(host + serverPort + "/contacts")
+      .get(host + "/contacts")
       .then((response : AxiosResponse) => {
         setContacts(response.data);
       })
@@ -91,7 +90,7 @@ const Home = () => {
     };
 
     axios
-      .post(host + serverPort + "/contacts", newContact)
+      .post(host + "/contacts", newContact)
       .then((response : AxiosResponse) => {
         setContacts([response.data, ...contacts]);
         setName("");
