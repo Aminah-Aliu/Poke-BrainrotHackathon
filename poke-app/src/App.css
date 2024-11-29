@@ -270,3 +270,11 @@ input:focus {
   cursor: pointer;
   display: inline-block;
 }
+
+.notes {
+  white-space: pre-wrap;
+  word-wrap: break-word; 
+  max-height: 200px; 
+  max-width: 80%;
+  overflow-y: auto; 
+}

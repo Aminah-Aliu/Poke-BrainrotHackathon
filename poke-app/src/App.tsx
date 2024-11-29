@@ -12,6 +12,7 @@ interface Contact {
   phone?: string;
   email?: string;
   linkedin?: string;
+  notes?: string;
 }
 
 const serverPort = "5001";
@@ -31,6 +32,7 @@ const App = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [linkedin, setLinkedin] = useState("");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     axios
@@ -83,13 +85,13 @@ const App = () => {
       phone: phone,
       email: email,
       linkedin: linkedin,
+      notes: notes,
     };
 
     axios
       .post("http://localhost:" + serverPort + "/contacts", newContact)
       .then((response) => {
         setContacts([response.data, ...contacts]);
-
         setName("");
         setCompany("");
         setLastContacted(new Date().toISOString().split("T")[0]);
@@ -97,6 +99,7 @@ const App = () => {
         setPhone("");
         setEmail("");
         setLinkedin("");
+        setNotes(""); // Reset notes
         setShowAddContactModal(false);
       })
       .catch((error) => {
@@ -221,6 +224,11 @@ const App = () => {
                   </a>
                 </li>
               )}
+              {currentContact.notes &&   
+              <li>
+                <strong>Notes:</strong>
+                <div className="notes">{currentContact.notes}</div>
+              </li>}
             </ul>
             <button className="close-modal-button" onClick={handleCloseModal}>
               Close
@@ -289,6 +297,15 @@ const App = () => {
                     value={linkedin}
                     onChange={(event) => setLinkedin(event.target.value)}
                     className="form-input"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Notes</label>
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    className="form-input"
+                    rows={3}
                   />
                 </div>
               </div>
