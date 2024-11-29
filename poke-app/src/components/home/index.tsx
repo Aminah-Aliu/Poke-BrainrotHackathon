@@ -15,15 +15,10 @@ interface Contact {
   notes?: string;
 }
 
-console.log("HOST:", process.env.REACT_APP_DEV_HOST);
-console.log("SERVER PORT:", process.env.REACT_APP_DEV_SERVER_PORT);
-
 // switch to development host and server port (see .env) for local use 
-const host = process.env.REACT_APP_DEV_HOST || "error";
-const serverPort = process.env.REACT_APP_DEV_SERVER_PORT || "error";
+const host = process.env.REACT_APP_PROD_HOST || "error";
+const serverPort = process.env.REACT_APP_PROD_SERVER_PORT || "error";
 
-console.log("HOST (actual):", host);
-console.log("SERVER PORT (actual):", serverPort);
 const Home = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactIndex, setSelectedContactIndex] = useState(0);
