@@ -39,6 +39,7 @@ const App = () => {
     axios
       .get(host + "/contacts")
       .then((response) => {
+        console.log("Contacts found")
         setContacts(response.data);
       })
       .catch((error) => {
