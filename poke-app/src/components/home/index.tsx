@@ -1,18 +1,3 @@
-// import React from 'react'
-// import { useAuth } from '../../contexts/authContext'
-
-// const Home = () => {
-//     const { currentUser } = useAuth()
-//     if (!currentUser) {
-//         return <div>Loading...</div>; // Handle null state gracefully
-//       }
-    
-//     return (
-//         <div className='text-2xl font-bold pt-14'>Hello {currentUser?.displayName || 'Guest'}, you are now logged in.</div>
-//     )
-// }
-
-// export default Home
 import React, { useState, useEffect } from "react";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import "./home.css";
@@ -30,12 +15,15 @@ interface Contact {
   notes?: string;
 }
 
-// switch to localhost and port 5001 for local use
-const host = "https://trypoke.onrender.com";
-const serverPort = "10000";
-// const host = "http://localhost:";
-// const serverPort = "5001";
+console.log("HOST:", process.env.REACT_APP_DEV_HOST);
+console.log("SERVER PORT:", process.env.REACT_APP_DEV_SERVER_PORT);
 
+// switch to development host and server port (see .env) for local use 
+const host = process.env.REACT_APP_DEV_HOST || "error";
+const serverPort = process.env.REACT_APP_DEV_SERVER_PORT || "error";
+
+console.log("HOST (actual):", host);
+console.log("SERVER PORT (actual):", serverPort);
 const Home = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactIndex, setSelectedContactIndex] = useState(0);

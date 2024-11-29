@@ -8,14 +8,19 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+console.log("Firebase Config:");
+console.log("API Key:", process.env.REACT_APP_FIREBASE_API_KEY);
+console.log("Project ID:", process.env.REACT_APP_FIREBASE_PROJECT_ID);
+console.log("ANYTHING?", process.env);
 const firebaseConfig = {
-  apiKey: "AIzaSyCGJBC4RR2yv9s5re2eqt7611DLda-VznY",
-  authDomain: "poke-87981.firebaseapp.com",
-  projectId: "poke-87981",
-  storageBucket: "poke-87981.firebasestorage.app",
-  messagingSenderId: "749993723959",
-  appId: "1:749993723959:web:793824a0ca924bc4b817b2",
-  measurementId: "G-3CFJ8VWY2R"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
