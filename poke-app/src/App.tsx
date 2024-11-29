@@ -64,7 +64,7 @@ const App = () => {
     setContacts(updatedContacts);
 
     axios
-      .put(host+ "/contacts/${currentContact.id}", updatedContact)
+      .put(host+ "/contacts/" + currentContact.id, updatedContact)
       .catch((error) => {
         console.error("Error updating contact:", error);
       });
