@@ -114,5 +114,5 @@ app.get('/contacts', async (req: Request, res: Response) => {
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server is listening on ${port}`);
 });
