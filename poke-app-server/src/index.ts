@@ -112,6 +112,43 @@ app.get('/contacts', async (req: Request, res: Response) => {
   }
 });
 
+// Update an existing contact
+app.put('/contacts/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updatedContact = req.body;
+
+    // Ensure required fields are provided
+    if (!updatedContact.name || !updatedContact.lastContacted) {
+      res.status(400).send('Missing required fields: name or lastContacted');
+      return;
+    }
+
+    const contactRef = db.collection(collectionName).doc(id);
+
+    // Check if the contact exists
+    const contactDoc = await contactRef.get();
+    if (!contactDoc.exists) {
+      res.status(404).send('Contact not found');
+      return;
+    }
+
+    // Update the contact
+    await contactRef.update(updatedContact);
+
+    // Fetch the updated contact
+    const updatedContactData = await contactRef.get();
+
+    res.status(200).json({ id, ...updatedContactData.data() });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).send('Error updating contact: ' + error.message);
+    } else {
+      res.status(500).send('Error updating contact');
+    }
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is listening on ${port}`);
