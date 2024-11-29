@@ -145,7 +145,7 @@ const Home = () => {
           // Iterate over each imported contact and post it to the server
           importedContacts.forEach((contact) => {
             axios
-              .post(host+serverPort + "/contacts", contact)
+              .post(host + "/contacts", contact)
               .then((response : AxiosResponse) => {
                 // Add the response data to the state, so the new contact is visible
                 setContacts((prevContacts) => [response.data, ...prevContacts]);
