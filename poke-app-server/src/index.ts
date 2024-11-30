@@ -1,7 +1,8 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import * as admin from 'firebase-admin';
 import cors from 'cors';
 import path from 'path';
+
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
@@ -20,8 +21,41 @@ app.use(express.json());
 const db = admin.firestore();
 const collectionName = 'contacts';
 
+// Extend Request type to include `user` field
+interface AuthenticatedRequest extends Request {
+  user?: {
+    uid: string;
+  };
+}
+
+// Middleware to authenticate users
+export const authenticate = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const token = req.headers.authorization?.split("Bearer ")[1]; // Extract Bearer token
+
+    if (!token) {
+      res.status(401).send({ error: "Unauthorized: Missing token" });
+      return; // Terminate the request
+    }
+
+    // Verify token with Firebase Admin SDK
+    const decodedToken = await admin.auth().verifyIdToken(token);
+
+    // Attach user information (uid) to the request
+    req.user = { uid: decodedToken.uid };
+
+    next(); // Pass control to the next middleware or route handler
+  } catch (error) {
+    res.status(401).send({ error: "Unauthorized: Invalid token" });
+  }
+};
+
 // Seed contacts into Firestore
-app.post('/seed-contacts', async (req: Request, res: Response) => {
+app.post('/seed-contacts', authenticate, async (req: Request, res: Response) => {
   const contacts = [
     {
       name: 'Aminah Aliu',
@@ -53,8 +87,10 @@ app.post('/seed-contacts', async (req: Request, res: Response) => {
   ];
 
   try {
+    const userId = (req as any).user.uid;
     for (const contact of contacts) {
-      await db.collection(collectionName).add(contact);
+      // await db.collection(collectionName).add(contact);
+      await db.collection("users").doc(userId).collection(collectionName).add(contact)
     }
     console.log("Seeded successfully")
     res.status(200).send('Sample contacts seeded successfully!');
@@ -68,16 +104,27 @@ app.post('/seed-contacts', async (req: Request, res: Response) => {
 });
 
 // Add a new contact
-app.post('/contacts', async (req: Request, res: Response): Promise<void> => {
+app.post('/contacts', authenticate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const newContact = req.body;
+    const userId = (req as any).user.uid;
 
+    const newContact = req.body;
+    
     if (!newContact.name || !newContact.company || !newContact.lastContacted) {
       res.status(400).send('Missing required fields: name, company, or lastContacted');
       return;
     }
+    // newContact.userId = userId;
+    
+    // const addedContact = await db.collection(collectionName).add(newContact);
+    // const addedContactData = await addedContact.get();
+    // Create a subcollection for the user's contacts
+    const userContactsRef = db.collection("users").doc(userId).collection(collectionName);
 
-    const addedContact = await db.collection(collectionName).add(newContact);
+    // Add the new contact to the subcollection
+    const addedContact = await userContactsRef.add(newContact);
+
+    // Get the added contact data to include in the response
     const addedContactData = await addedContact.get();
 
     res.status(201).json({ id: addedContact.id, ...addedContactData.data() });
@@ -91,23 +138,29 @@ app.post('/contacts', async (req: Request, res: Response): Promise<void> => {
 });
 
 // Get all contacts
-app.get('/contacts', async (req: Request, res: Response) => {
+app.get('/contacts', authenticate, async (req: Request, res: Response) => {
   try {
-    const snapshot = await db.collection(collectionName).get();
+    const userId = (req as any).user.uid;
+    const userContactsRef = db.collection("users").doc(userId).collection(collectionName);
+  
+    const snapshot = await userContactsRef.get();
     if (snapshot.empty) {
-      res.status(404).send('No contacts found');
+      res.status(200).json([]); // Return an empty array instead of 404
       return;
     }
-    const contacts: any[] = [];
-    snapshot.forEach((doc) => {
-      contacts.push({ id: doc.id, ...doc.data() });
-    });
+    const contacts: any[] = snapshot.docs.map((doc) => ({
+      id: doc.id, // Include the Firestore document ID
+      ...doc.data(), // Include the rest of the document data
+    }));
     res.status(200).json(contacts);
   } catch (error) {
+    console.error('Error fetching contacts:', error);
+
+    // Return an appropriate error message
     if (error instanceof Error) {
-      res.status(500).send('Error getting contacts: ' + error.message);
+      res.status(500).json({ error: 'Error fetching contacts: ' + error.message });
     } else {
-      res.status(500).send('Error getting contacts');
+      res.status(500).json({ error: 'An unknown error occurred while fetching contacts' });
     }
   }
 });

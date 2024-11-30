@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import "./home.css";
 import Papa from "papaparse";
+import { getAuth } from "firebase/auth";
 
 interface Contact {
   id?: string;
@@ -34,6 +35,30 @@ const Home = () => {
   const [email, setEmail] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [notes, setNotes] = useState("");
+  const auth = getAuth();
+
+  const fetchToken = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      console.log(token); // Firebase JWT
+      return token;
+    }
+    return null;
+  };
+
+  fetchToken();
+
+  axios.interceptors.request.use(async (config) => {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.error('No user is logged in. Request is being sent without a token.');
+    }
+    return config;
+  });
 
   useEffect(() => {
     axios
