@@ -114,11 +114,6 @@ app.post('/contacts', authenticate, async (req: Request, res: Response): Promise
       res.status(400).send('Missing required fields: name, company, or lastContacted');
       return;
     }
-    // newContact.userId = userId;
-    
-    // const addedContact = await db.collection(collectionName).add(newContact);
-    // const addedContactData = await addedContact.get();
-    // Create a subcollection for the user's contacts
     const userContactsRef = db.collection("users").doc(userId).collection(collectionName);
 
     // Add the new contact to the subcollection
@@ -143,7 +138,7 @@ app.get('/contacts', authenticate, async (req: Request, res: Response) => {
     const userId = (req as any).user.uid;
     const userContactsRef = db.collection("users").doc(userId).collection(collectionName);
   
-    const snapshot = await userContactsRef.get();
+    const snapshot = await userContactsRef.orderBy("lastContacted", "asc").limit(20).get();
     if (snapshot.empty) {
       res.status(200).json([]); // Return an empty array instead of 404
       return;

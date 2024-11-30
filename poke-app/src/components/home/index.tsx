@@ -17,7 +17,7 @@ interface Contact {
 }
 
 // switch to development host and server port (see .env) for local use 
-const host = process.env.REACT_APP_PROD_HOST || "error";
+const host = process.env.REACT_APP_DEV_HOST || "error";
 
 const Home = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -93,6 +93,7 @@ const Home = () => {
       .catch((error : AxiosError) => {
         console.error("Error updating contact:", error);
       });
+    setSelectedContactIndex((prevIndex) => (prevIndex + 1 < contacts.length ? prevIndex + 1 : 0));
   };
 
   const handlePass = () => {
@@ -152,35 +153,57 @@ const Home = () => {
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
-  
+
+      interface CSVRow {
+        "First Name": string;
+        "Last Name": string;
+        URL: string;
+        "Email Address": string;
+        Company: string;
+        Position: string;
+        "Connected On": string;
+      }
+
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        complete: (result: { data: any[] }) => {
-          const importedContacts = result.data.map((row: any) => ({
-            name: `${row["First Name"]} ${row["Last Name"]}`,
-            company: row["Company"] || "",
-            lastContacted: row["Connected On"],
+        step: function (row, parser) {
+          const rowData = row.data as CSVRow; // Explicitly cast to the CSVRow type
+      
+          // Check if the first cell matches "First Name"
+          if (rowData["First Name"]?.trim() === "First Name") {
+            parser.pause(); // Temporarily stop parsing
+            parser.resume(); // Resume parsing
+            return; // Skip this specific header row
+          }
+      
+          // Process rows normally after the header
+          const importedContact = {
+            name: `${rowData["First Name"]} ${rowData["Last Name"]}`,
+            company: rowData["Company"] || "",
+            lastContacted: rowData["Connected On"] || "",
             photo: null,
             phone: "",
-            email: row["Email Address"] || "",
-            linkedin: row["URL"] || "",
-          }));
-  
-          // Iterate over each imported contact and post it to the server
-          importedContacts.forEach((contact) => {
-            axios
-              .post(host + "/contacts", contact)
-              .then((response : AxiosResponse) => {
-                // Add the response data to the state, so the new contact is visible
-                setContacts((prevContacts) => [response.data, ...prevContacts]);
-              })
-              .catch((error : AxiosError) => {
-                console.error("Error adding contact from CSV:", error);
-              });
-          });
+            email: rowData["Email Address"] || "",
+            linkedin: rowData.URL || "",
+          };
+      
+          // Add the contact to the server
+          axios
+            .post(host + "/contacts", importedContact)
+            .then((response: AxiosResponse) => {
+              setContacts((prevContacts) => [response.data, ...prevContacts]);
+            })
+            .catch((error: AxiosError) => {
+              console.error("Error adding contact from CSV:", error);
+            });
+        },
+        complete: () => {
+          console.log("Parsing complete.");
         },
       });
+      
+      
     }
   };  
 
