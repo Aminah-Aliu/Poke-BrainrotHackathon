@@ -41,6 +41,7 @@ export const authenticate = async (
 
     if (!token) {
       res.status(401).send({ error: "Unauthorized: Missing token" });
+      console.log("Unauthorized access, likely an attempt from the cronjob")
       return; // Terminate the request
     }
 
