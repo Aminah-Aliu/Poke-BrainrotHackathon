@@ -206,6 +206,7 @@ const Home = () => {
       
           console.log("Adding contact:", importedContact);
           batchedContacts.push(importedContact); // Add the contact to the batch
+
         },
         complete: () => {
           console.log("Parsing complete. Sending batch to the server...");

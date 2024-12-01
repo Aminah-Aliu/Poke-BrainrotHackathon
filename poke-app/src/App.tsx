@@ -6,30 +6,9 @@ import Login from "./components/auth/login/index.jsx";
 import Register from "./components/auth/register/index.jsx";
 import Home from "./components/home/index";
 import Navbar from './components/nav/index.jsx';
+import GettingStarted from './components/gettingStarted/index.jsx';
+import AboutPage from './components/about/index.jsx'
 import ProtectedRoute from './components/ProtectedRoute';
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.tsx</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
-//   );
-// }
-
-// export default App;
 
 const App: React.FC = () => {
   const isAuthenticated = false; 
@@ -42,11 +21,15 @@ const App: React.FC = () => {
     <Navbar/>
       <Routes>
         {/* Default route redirects to Login */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/start" />} />
         {/* Login Page */}
         <Route path="/login" element={<Login />} />
         {/* Register Page */}
         <Route path="/register" element={<Register />} />
+        {/* Getting Started Page */}
+        <Route path="/start" element={<GettingStarted />} />
+         {/* About Page */}
+         <Route path="/about" element={<AboutPage />} />
         {/* Home Page */}
         <Route
           path="/home"

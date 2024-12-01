@@ -45,10 +45,10 @@ export default function Navbar() {
             <NavLink to="/" className={({ isActive }) => (isActive ? "active" : "")}>
                 Poke
             </NavLink>
-            <NavLink to="/todo-add-start" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink to="/start" className={({ isActive }) => (isActive ? "active" : "")}>
                 Getting Started
             </NavLink>
-            <NavLink to="/todo-add-about" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink to="/about" className={({ isActive }) => (isActive ? "active" : "")}>
                 About
             </NavLink>
 
