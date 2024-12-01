@@ -17,7 +17,7 @@ interface Contact {
 }
 
 // switch to development host and server port (see .env) for local use 
-const host = process.env.REACT_APP_PROD_HOST || "error";
+const host = process.env.REACT_APP_DEV_HOST || "error";
 
 const Home = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
