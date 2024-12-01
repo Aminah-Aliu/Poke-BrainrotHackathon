@@ -21,13 +21,13 @@ const App: React.FC = () => {
     <Navbar/>
       <Routes>
         {/* Default route redirects to Login */}
-        <Route path="/" element={<Navigate to="/start" />} />
+        <Route path="/" element={<Navigate to="/register" />} />
         {/* Login Page */}
         <Route path="/login" element={<Login />} />
         {/* Register Page */}
         <Route path="/register" element={<Register />} />
-        {/* Getting Started Page */}
-        <Route path="/start" element={<GettingStarted />} />
+          {/* Getting Started Page */}
+          <Route path="/start" element={<GettingStarted />} />
          {/* About Page */}
          <Route path="/about" element={<AboutPage />} />
         {/* Home Page */}
