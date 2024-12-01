@@ -61,15 +61,22 @@ const Home = () => {
   });
 
   useEffect(() => {
-    axios
-      .get(host + "/contacts")
-      .then((response : AxiosResponse) => {
-        setContacts(response.data);
-      })
-      .catch((error : AxiosError) => {
-        console.error("Error fetching contacts:", error);
-      });
-  }, []);
+    const shouldFetchContacts =
+      contacts.length === 0 || selectedContactIndex >= contacts.length - 5;
+  
+    if (shouldFetchContacts) {
+      axios
+        .get(host + "/contacts")
+        .then((response: AxiosResponse) => {
+          setContacts((prevContacts) => [...prevContacts, ...response.data]); // Append new contacts
+        })
+        .catch((error: AxiosError) => {
+          console.error("Error fetching contacts:", error);
+        });
+    }
+  }, [selectedContactIndex, contacts, host]);
+  
+  
 
   const handlePoke = () => {
     if (!currentContact) {
@@ -89,11 +96,10 @@ const Home = () => {
     setContacts(updatedContacts);
 
     axios
-      .put(host + "/contacts/${currentContact.id}", updatedContact)
+      .put(host + "/contacts/" + currentContact.id, updatedContact)
       .catch((error : AxiosError) => {
         console.error("Error updating contact:", error);
       });
-    setSelectedContactIndex((prevIndex) => (prevIndex + 1 < contacts.length ? prevIndex + 1 : 0));
   };
 
   const handlePass = () => {
@@ -148,6 +154,7 @@ const Home = () => {
 
   const handleCloseModal = () => {
     setShowContactModal(false);
+    setSelectedContactIndex((prevIndex) => (prevIndex + 1 < contacts.length ? prevIndex + 1 : 0));
   };
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,51 +162,64 @@ const Home = () => {
       const file = event.target.files[0];
 
       interface CSVRow {
-        "First Name": string;
-        "Last Name": string;
-        URL: string;
-        "Email Address": string;
-        Company: string;
-        Position: string;
-        "Connected On": string;
+        [key: string]: string;
       }
 
+      interface Contact {
+        name: string;
+        company: string;
+        lastContacted: string;
+        photo: string | null;
+        phone: string;
+        email: string;
+        linkedin: string;
+      }
+    
+      let hasReachedHeader = false;
+      const batchedContacts: Contact[] = [];
       Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
+        skipEmptyLines: true, // Skip empty lines
         step: function (row, parser) {
+          type CSVRow = Record<string, string>;
           const rowData = row.data as CSVRow; // Explicitly cast to the CSVRow type
-      
-          // Check if the first cell matches "First Name"
-          if (rowData["First Name"]?.trim() === "First Name") {
-            parser.pause(); // Temporarily stop parsing
-            parser.resume(); // Resume parsing
-            return; // Skip this specific header row
+          const rowKeys = Object.keys(rowData);
+          console.log("Processing row:", rowData);
+          console.log("Row keys:", Object.keys(rowData));
+
+          if (!hasReachedHeader) {
+            if (rowData["0"]?.trim() === "First Name") {
+              hasReachedHeader = true;
+              console.log("Header row detected:", rowData);
+              return; // Skip the header row
+            }
+            return; // Skip rows before the header
           }
-      
-          // Process rows normally after the header
-          const importedContact = {
-            name: `${rowData["First Name"]} ${rowData["Last Name"]}`,
-            company: rowData["Company"] || "",
-            lastContacted: rowData["Connected On"] || "",
+          const importedContact: Contact = {
+            name: `${rowData["0"]} ${rowData["1"]}`,
+            company: rowData["4"] || "",
+            lastContacted: rowData["6"] || "",
             photo: null,
             phone: "",
-            email: rowData["Email Address"] || "",
-            linkedin: rowData.URL || "",
+            email: rowData["3"] || "",
+            linkedin: rowData["2"] || "",
           };
       
-          // Add the contact to the server
-          axios
-            .post(host + "/contacts", importedContact)
-            .then((response: AxiosResponse) => {
-              setContacts((prevContacts) => [response.data, ...prevContacts]);
-            })
-            .catch((error: AxiosError) => {
-              console.error("Error adding contact from CSV:", error);
-            });
+          console.log("Adding contact:", importedContact);
+          batchedContacts.push(importedContact); // Add the contact to the batch
         },
         complete: () => {
-          console.log("Parsing complete.");
+          console.log("Parsing complete. Sending batch to the server...");
+      
+          // Now send the batched contacts to the server
+          axios
+            .post(host + "/contacts/batch", { contacts: batchedContacts }) // Wrap the array in an object if your backend expects it
+            .then((response: AxiosResponse) => {
+              console.log("Batch contacts added:", response.data);
+              setContacts((prevContacts) => [...response.data, ...prevContacts]);
+            })
+            .catch((error: AxiosError) => {
+              console.error("Error adding contacts in batch:", error);
+            });
         },
       });
       

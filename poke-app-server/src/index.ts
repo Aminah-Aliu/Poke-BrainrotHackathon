@@ -132,6 +132,84 @@ app.post('/contacts', authenticate, async (req: Request, res: Response): Promise
   }
 });
 
+// store a batch of contacts (more efficient)
+app.post('/contacts/batch', authenticate, async (req: Request, res: Response): Promise<void> =>  {
+  try {
+    const { contacts } = req.body;
+    console.log("Received batch contacts:", contacts);
+
+    if (!contacts || !Array.isArray(contacts)) {
+      res.status(400).send('Invalid request: contacts must be an array');
+      return;
+    }
+
+    const userId = (req as any).user.uid;
+    const userContactsRef = db.collection("users").doc(userId).collection(collectionName);
+
+    const batch = db.batch(); // Firestore batch operation
+    const addedContacts: any[] = [];
+
+    contacts.forEach((contact) => {
+      if (!contact.name || !contact.company || !contact.lastContacted) {
+        throw new Error(`Invalid contact data: ${JSON.stringify(contact)}`);
+      }
+      const contactRef = userContactsRef.doc();
+      batch.set(contactRef, contact);
+      addedContacts.push({ id: contactRef.id, ...contact }); // Include IDs in the response
+    });
+
+    await batch.commit();
+    res.status(201).json(addedContacts);
+  } catch (error) {
+    console.error("Error processing batch:", error);
+    if (error instanceof Error) {
+      res.status(500).send('Error adding contact: ' + error.message);
+    } else {
+      res.status(500).send('Error adding contact');
+    }
+  }
+});
+
+app.put('/contacts/:contactId', authenticate, async (req: Request, res: Response): Promise<void> =>  {
+  try {
+    // Extract userId from the authenticated user
+    const userId = (req as any).user.uid;
+
+    // Extract contactId from the request parameters
+    const { contactId } = req.params;
+
+    // Ensure the request body contains the updated contact fields
+    const updatedContact = req.body;
+    if (!updatedContact || Object.keys(updatedContact).length === 0) {
+      res.status(400).send("No contact data provided.");
+      return
+    }
+
+    // Reference to the specific contact document in Firestore
+    const contactRef = db
+      .collection("users")
+      .doc(userId)
+      .collection(collectionName)
+      .doc(contactId);
+
+    // Check if the contact exists
+    const contactSnapshot = await contactRef.get();
+    if (!contactSnapshot.exists) {
+      res.status(404).send("Contact not found.");
+      return
+    }
+
+    // Update the contact with the new data
+    await contactRef.update(updatedContact);
+
+    // Send a success response
+    res.status(200).send({ message: "Contact updated successfully." });
+  } catch (error) {
+    console.error("Error updating contact:", error);
+    res.status(500).send("Error updating contact.");
+  }
+});
+
 // Get all contacts
 app.get('/contacts', authenticate, async (req: Request, res: Response) => {
   try {
